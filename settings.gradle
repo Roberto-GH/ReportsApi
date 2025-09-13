@@ -1,15 +1,15 @@
 pluginManagement {
-    repositories {
-        //mavenLocal()
-        //maven { url = '...' }
-        gradlePluginPortal()
-    }
+  repositories {
+    //mavenLocal()
+    //maven { url = '...' }
+    gradlePluginPortal()
+  }
 }
 
 buildCache {
-    local {
-        directory = new File(rootDir, 'build-cache')
-    }
+  local {
+    directory = new File(rootDir, 'build-cache')
+  }
 }
 
 rootProject.name = 'ReportsApi'
