@@ -25,6 +25,10 @@ management:
         enabled: true
 cors:
   allowed-origins: "${CORS}"
+routes:
+  report:
+    paths:
+      reports: "/api/v1/report"
 jwt:
   secret: "${JWT_SECRET}"
 entrypoint:

@@ -1,6 +1,6 @@
 package co.com.pragma.dynamodb.helper;
 
-import co.com.pragma.dynamodb.DynamoDBTemplateAdapter;
+import co.com.pragma.dynamodb.DynamoDBApprovedLoanAdapter;
 import co.com.pragma.dynamodb.ApprovedLoanEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
-class TemplateAdapterOperationsTest {
+class GenericAdapterOperationsTest {
 
     @Mock
     private DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient;
@@ -57,10 +57,10 @@ class TemplateAdapterOperationsTest {
         when(customerTable.putItem(approvedLoanEntity)).thenReturn(CompletableFuture.runAsync(()->{}));
         when(mapper.map(approvedLoanEntity, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
 
-        DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
-                new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
+        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
+                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
 
-        StepVerifier.create(dynamoDBTemplateAdapter.save(approvedLoanEntity))
+        StepVerifier.create(dynamoDBApprovedLoanAdapter.save(approvedLoanEntity))
                 .expectNextCount(1)
                 .verifyComplete();
     }
@@ -74,10 +74,10 @@ class TemplateAdapterOperationsTest {
                 .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
         when(mapper.map(approvedLoanEntity, Object.class)).thenReturn("value");
 
-        DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
-                new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
+        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
+                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
 
-        StepVerifier.create(dynamoDBTemplateAdapter.getById("id"))
+        StepVerifier.create(dynamoDBApprovedLoanAdapter.getById("id"))
                 .expectNext("value")
                 .verifyComplete();
     }
@@ -90,10 +90,10 @@ class TemplateAdapterOperationsTest {
         when(customerTable.deleteItem(approvedLoanEntity))
                 .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
 
-        DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
-                new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
+        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
+                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
 
-        StepVerifier.create(dynamoDBTemplateAdapter.delete(approvedLoanEntity))
+        StepVerifier.create(dynamoDBApprovedLoanAdapter.delete(approvedLoanEntity))
                 .expectNext("value")
                 .verifyComplete();
     }

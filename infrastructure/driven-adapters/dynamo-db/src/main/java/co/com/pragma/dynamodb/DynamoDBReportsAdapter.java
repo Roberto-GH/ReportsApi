@@ -1,9 +1,9 @@
 package co.com.pragma.dynamodb;
 
 import co.com.pragma.dynamodb.constants.DynamoDBKeys;
-import co.com.pragma.dynamodb.helper.TemplateAdapterOperations;
-import co.com.pragma.model.report.ApprovedLoan;
-import co.com.pragma.model.report.gateways.ApprovedLoanRepository;
+import co.com.pragma.dynamodb.helper.GenericAdapterOperations;
+import co.com.pragma.model.report.Report;
+import co.com.pragma.model.report.gateways.ReportRepository;
 import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -15,19 +15,19 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 import java.util.List;
 
 @Repository
-public class DynamoDBTemplateAdapter extends TemplateAdapterOperations<ApprovedLoan, String, ApprovedLoanEntity>
-  implements ApprovedLoanRepository {
+public class DynamoDBReportsAdapter extends GenericAdapterOperations<Report, Long, ReportEntity>
+  implements ReportRepository {
 
-  public DynamoDBTemplateAdapter(DynamoDbEnhancedAsyncClient connectionFactory, ObjectMapper mapper) {
-    super(connectionFactory, mapper, d -> mapper.map(d, ApprovedLoan.class), DynamoDBKeys.TABLE_NAME_LOANS_APPROVED);
+  public DynamoDBReportsAdapter(DynamoDbEnhancedAsyncClient connectionFactory, ObjectMapper mapper) {
+    super(connectionFactory, mapper, d -> mapper.map(d, Report.class), DynamoDBKeys.TABLE_NAME_REPORT_SUMMARY);
   }
 
-  public Mono<List<ApprovedLoan>> getEntityBySomeKeys(String partitionKey, String sortKey) {
+  public Mono<List<Report>> getEntityBySomeKeys(String partitionKey, String sortKey) {
     QueryEnhancedRequest queryExpression = generateQueryExpression(partitionKey, sortKey);
     return query(queryExpression);
   }
 
-  public Mono<List<ApprovedLoan>> getEntityBySomeKeysByIndex(String partitionKey, String sortKey) {
+  public Mono<List<Report>> getEntityBySomeKeysByIndex(String partitionKey, String sortKey) {
     QueryEnhancedRequest queryExpression = generateQueryExpression(partitionKey, sortKey);
     return queryByIndex(queryExpression);
   }
@@ -41,8 +41,8 @@ public class DynamoDBTemplateAdapter extends TemplateAdapterOperations<ApprovedL
   }
 
   @Override
-  public Mono<Void> saveApprovedLoan(ApprovedLoan approvedLoan) {
-    return super.save(approvedLoan).then();
+  public Mono<Report> getReport() {
+    return super.getById(DynamoDBKeys.REPORT_ID);
   }
 
 }
