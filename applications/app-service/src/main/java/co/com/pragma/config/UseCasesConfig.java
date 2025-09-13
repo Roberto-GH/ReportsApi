@@ -1,14 +1,16 @@
 package co.com.pragma.config;
 
-import org.springframework.context.annotation.ComponentScan;
+import co.com.pragma.model.report.gateways.ApprovedLoanRepository;
+import co.com.pragma.usecase.report.ApprovedLoanUseCase;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
 
 @Configuration
-@ComponentScan(basePackages = "co.com.pragma.usecase",
-        includeFilters = {
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "^.+UseCase$")
-        },
-        useDefaultFilters = false)
 public class UseCasesConfig {
+
+  @Bean
+  public ApprovedLoanUseCase approvedLoanUseCase(ApprovedLoanRepository approvedLoanRepository) {
+    return new ApprovedLoanUseCase(approvedLoanRepository);
+  }
+
 }

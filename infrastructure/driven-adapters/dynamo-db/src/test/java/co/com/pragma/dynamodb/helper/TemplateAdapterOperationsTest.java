@@ -1,7 +1,7 @@
 package co.com.pragma.dynamodb.helper;
 
 import co.com.pragma.dynamodb.DynamoDBTemplateAdapter;
-import co.com.pragma.dynamodb.ModelEntity;
+import co.com.pragma.dynamodb.ApprovedLoanEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -28,39 +28,39 @@ class TemplateAdapterOperationsTest {
     private ObjectMapper mapper;
 
     @Mock
-    private DynamoDbAsyncTable<ModelEntity> customerTable;
+    private DynamoDbAsyncTable<ApprovedLoanEntity> customerTable;
 
-    private ModelEntity modelEntity;
+    private ApprovedLoanEntity approvedLoanEntity;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        when(dynamoDbEnhancedAsyncClient.table("table_name", TableSchema.fromBean(ModelEntity.class)))
+        when(dynamoDbEnhancedAsyncClient.table("table_name", TableSchema.fromBean(ApprovedLoanEntity.class)))
                 .thenReturn(customerTable);
 
-        modelEntity = new ModelEntity();
-        modelEntity.setId("id");
-        modelEntity.setAtr1("atr1");
+        approvedLoanEntity = new ApprovedLoanEntity();
+        approvedLoanEntity.setId("id");
+        approvedLoanEntity.setAtr1("atr1");
     }
 
     @Test
     void modelEntityPropertiesMustNotBeNull() {
-        ModelEntity modelEntityUnderTest = new ModelEntity("id", "atr1");
+        ApprovedLoanEntity approvedLoanEntityUnderTest = new ApprovedLoanEntity("id", "atr1");
 
-        assertNotNull(modelEntityUnderTest.getId());
-        assertNotNull(modelEntityUnderTest.getAtr1());
+        assertNotNull(approvedLoanEntityUnderTest.getId());
+        assertNotNull(approvedLoanEntityUnderTest.getAtr1());
     }
 
     @Test
     void testSave() {
-        when(customerTable.putItem(modelEntity)).thenReturn(CompletableFuture.runAsync(()->{}));
-        when(mapper.map(modelEntity, ModelEntity.class)).thenReturn(modelEntity);
+        when(customerTable.putItem(approvedLoanEntity)).thenReturn(CompletableFuture.runAsync(()->{}));
+        when(mapper.map(approvedLoanEntity, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
 
         DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
                 new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
 
-        StepVerifier.create(dynamoDBTemplateAdapter.save(modelEntity))
+        StepVerifier.create(dynamoDBTemplateAdapter.save(approvedLoanEntity))
                 .expectNextCount(1)
                 .verifyComplete();
     }
@@ -71,8 +71,8 @@ class TemplateAdapterOperationsTest {
 
         when(customerTable.getItem(
                 Key.builder().partitionValue(AttributeValue.builder().s(id).build()).build()))
-                .thenReturn(CompletableFuture.completedFuture(modelEntity));
-        when(mapper.map(modelEntity, Object.class)).thenReturn("value");
+                .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
+        when(mapper.map(approvedLoanEntity, Object.class)).thenReturn("value");
 
         DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
                 new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
@@ -84,16 +84,16 @@ class TemplateAdapterOperationsTest {
 
     @Test
     void testDelete() {
-        when(mapper.map(modelEntity, ModelEntity.class)).thenReturn(modelEntity);
-        when(mapper.map(modelEntity, Object.class)).thenReturn("value");
+        when(mapper.map(approvedLoanEntity, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
+        when(mapper.map(approvedLoanEntity, Object.class)).thenReturn("value");
 
-        when(customerTable.deleteItem(modelEntity))
-                .thenReturn(CompletableFuture.completedFuture(modelEntity));
+        when(customerTable.deleteItem(approvedLoanEntity))
+                .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
 
         DynamoDBTemplateAdapter dynamoDBTemplateAdapter =
                 new DynamoDBTemplateAdapter(dynamoDbEnhancedAsyncClient, mapper);
 
-        StepVerifier.create(dynamoDBTemplateAdapter.delete(modelEntity))
+        StepVerifier.create(dynamoDBTemplateAdapter.delete(approvedLoanEntity))
                 .expectNext("value")
                 .verifyComplete();
     }

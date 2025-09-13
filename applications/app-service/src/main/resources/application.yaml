@@ -1,19 +1,19 @@
 server:
-  port: 8080
+  port: 8070
 spring:
   application:
     name: "ReportsApi"
   devtools:
     add-properties: false
-  h2:
-    console:
-      enabled: true
-      path: "/h2"
-  profiles:
-    include: null
+logging:
+  level:
+    org:
+      springframework:
+        web: "DEBUG"
 aws:
+  region: "${AWS_REGION}"
   dynamodb:
-    endpoint: "http://localhost:8000"
+    endpoint: "${DYNAMO_DB_HOST}"
 management:
   endpoints:
     web:
@@ -24,12 +24,13 @@ management:
       probes:
         enabled: true
 cors:
-  allowed-origins: "http://localhost:4200,http://localhost:8080"
+  allowed-origins: "${CORS}"
+jwt:
+  secret: "${JWT_SECRET}"
 entrypoint:
   sqs:
-    region: "us-east-1"
-    endpoint: "http://localhost:4566"
-    queueUrl: "http://localhost:4566/000000000000/sample"
+    region: "${AWS_REGION}"
+    queueUrl: "${QUEUE_URL_LISTENER_REPORT}"
     waitTimeSeconds: 20
     maxNumberOfMessages: 10
     visibilityTimeoutSeconds: 10
