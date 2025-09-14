@@ -20,7 +20,6 @@ public class ReportsWebKeys {
   public static final String JWT_ERROR_BAD_TOKEN = "Bad token";
   public static final String JWT_ROLES = "roles";
   public static final String JWT_AUTHORITY = "authority";
-  public static final String HEADER_AUTHORIZATION = "Authorization";
   public static final String STRING_BLANK = "";
   public static final String TOKEN = "token";
   public static final String STRING_AUTH = "auth";
@@ -48,10 +47,9 @@ public class ReportsWebKeys {
   public static final String OPEN_API_RESPONSE_CODE = "200";
   public static final String OPEN_API_DESCRIPTION_SUCCESS = "Successful operation";
   public static final String OPEN_API_MEDIA_TYPE = "application/json";
-  public static final String HEADER_MISSING = "header missing";
+  public static final String ALLOWED_PATH_ACTUATOR = "/actuator/**";
 
-  public static final String[] ALLOWED_PATHS = new String[]{"/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/swagger-ui/**",
-    "/actuator/prometheus/**", "/actuator/prometheus", "/actuator/**"};
+  public static final String[] ALLOWED_PATHS = new String[]{"/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/swagger-ui/**"};
 
   @Getter
   public enum HttpHeadersEnum {
