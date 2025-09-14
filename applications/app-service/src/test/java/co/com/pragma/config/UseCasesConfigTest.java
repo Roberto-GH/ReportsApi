@@ -5,7 +5,10 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import co.com.pragma.model.report.gateways.ApprovedLoanRepository;
+import co.com.pragma.model.report.gateways.ReportRepository;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class UseCasesConfigTest {
 
@@ -29,6 +32,16 @@ public class UseCasesConfigTest {
     @Configuration
     @Import(UseCasesConfig.class)
     static class TestConfig {
+
+        @Bean
+        public ApprovedLoanRepository approvedLoanRepository() {
+            return mock(ApprovedLoanRepository.class);
+        }
+
+        @Bean
+        public ReportRepository reportRepository() {
+            return mock(ReportRepository.class);
+        }
 
         @Bean
         public MyUseCase myUseCase() {
