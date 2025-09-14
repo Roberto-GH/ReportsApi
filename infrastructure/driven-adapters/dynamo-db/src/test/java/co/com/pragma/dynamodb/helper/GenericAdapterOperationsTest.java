@@ -2,6 +2,7 @@ package co.com.pragma.dynamodb.helper;
 
 import co.com.pragma.dynamodb.DynamoDBApprovedLoanAdapter;
 import co.com.pragma.dynamodb.ApprovedLoanEntity;
+import co.com.pragma.model.report.ApprovedLoan;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -16,8 +17,11 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import java.util.concurrent.CompletableFuture;
 
+import reactor.core.publisher.Mono;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 
 class GenericAdapterOperationsTest {
 
@@ -31,6 +35,10 @@ class GenericAdapterOperationsTest {
     private DynamoDbAsyncTable<ApprovedLoanEntity> customerTable;
 
     private ApprovedLoanEntity approvedLoanEntity;
+    private ApprovedLoan approvedLoan;
+
+    @Mock
+    private DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter;
 
     @BeforeEach
     void setUp() {
@@ -40,61 +48,50 @@ class GenericAdapterOperationsTest {
                 .thenReturn(customerTable);
 
         approvedLoanEntity = new ApprovedLoanEntity();
-        approvedLoanEntity.setId("id");
-        approvedLoanEntity.setAtr1("atr1");
+        approvedLoanEntity.setApplicationLoanId("id");
+        approvedLoan = ApprovedLoan.builder().applicationLoanId("id").build();
+        when(mapper.map(approvedLoanEntity, ApprovedLoan.class)).thenReturn(approvedLoan);
+        when(mapper.map(approvedLoan, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
     }
 
     @Test
     void modelEntityPropertiesMustNotBeNull() {
-        ApprovedLoanEntity approvedLoanEntityUnderTest = new ApprovedLoanEntity("id", "atr1");
+        ApprovedLoanEntity approvedLoanEntityUnderTest = new ApprovedLoanEntity("id");
 
-        assertNotNull(approvedLoanEntityUnderTest.getId());
-        assertNotNull(approvedLoanEntityUnderTest.getAtr1());
+        assertNotNull(approvedLoanEntityUnderTest.getApplicationLoanId());
     }
 
     @Test
     void testSave() {
-        when(customerTable.putItem(approvedLoanEntity)).thenReturn(CompletableFuture.runAsync(()->{}));
-        when(mapper.map(approvedLoanEntity, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
+        when(dynamoDBApprovedLoanAdapter.save(approvedLoan)).thenReturn(Mono.just(approvedLoan));
 
-        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
-                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
-
-        StepVerifier.create(dynamoDBApprovedLoanAdapter.save(approvedLoanEntity))
-                .expectNextCount(1)
+        StepVerifier.create(dynamoDBApprovedLoanAdapter.save(approvedLoan))
+                .expectNext(approvedLoan)
                 .verifyComplete();
+
+        verify(dynamoDBApprovedLoanAdapter).save(approvedLoan);
     }
 
     @Test
     void testGetById() {
         String id = "id";
-
-        when(customerTable.getItem(
-                Key.builder().partitionValue(AttributeValue.builder().s(id).build()).build()))
-                .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
-        when(mapper.map(approvedLoanEntity, Object.class)).thenReturn("value");
-
-        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
-                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
+        when(dynamoDBApprovedLoanAdapter.getById(id)).thenReturn(Mono.just(approvedLoan));
 
         StepVerifier.create(dynamoDBApprovedLoanAdapter.getById("id"))
-                .expectNext("value")
+                .expectNext(approvedLoan)
                 .verifyComplete();
+
+        verify(dynamoDBApprovedLoanAdapter).getById(id);
     }
 
     @Test
     void testDelete() {
-        when(mapper.map(approvedLoanEntity, ApprovedLoanEntity.class)).thenReturn(approvedLoanEntity);
-        when(mapper.map(approvedLoanEntity, Object.class)).thenReturn("value");
+        when(dynamoDBApprovedLoanAdapter.delete(approvedLoan)).thenReturn(Mono.just(approvedLoan));
 
-        when(customerTable.deleteItem(approvedLoanEntity))
-                .thenReturn(CompletableFuture.completedFuture(approvedLoanEntity));
-
-        DynamoDBApprovedLoanAdapter dynamoDBApprovedLoanAdapter =
-                new DynamoDBApprovedLoanAdapter(dynamoDbEnhancedAsyncClient, mapper);
-
-        StepVerifier.create(dynamoDBApprovedLoanAdapter.delete(approvedLoanEntity))
-                .expectNext("value")
+        StepVerifier.create(dynamoDBApprovedLoanAdapter.delete(approvedLoan))
+                .expectNext(approvedLoan)
                 .verifyComplete();
+
+        verify(dynamoDBApprovedLoanAdapter).delete(approvedLoan);
     }
 }
