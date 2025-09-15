@@ -41,7 +41,7 @@ public class ReportsWebKeys {
   public static final String ERROR_ATTRIBUTE_PATH = "path";
   public static final String WRITTING_JSON_ERROR = "{\"error\":\"Error writing JSON output\"}";
   public static final String OPEN_API_REPORT_PATH = "/api/v1/application";
-  public static final String OPEN_API_BEAN_METHOD_GET_REPORT = "listenGetReport";
+  public static final String OPEN_API_BEAN_METHOD_GET_REPORT = "listenGETReport";
   public static final String OPEN_API_OPERATION_GET_REPORT = "getReport";
   public static final String OPEN_API_SUMMARY_GET_REPORT = "Get report";
   public static final String OPEN_API_RESPONSE_CODE = "200";
