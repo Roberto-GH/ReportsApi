@@ -1,0 +1,1524 @@
+{
+  "service": {
+    "service": "crediya-reports-api",
+    "serviceObject": {
+      "name": "crediya-reports-api"
+    },
+    "provider": {
+      "name": "aws",
+      "region": "us-east-1",
+      "stage": "dev",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+              "CidrBlock": "10.10.0.0/16",
+              "EnableDnsSupport": true,
+              "EnableDnsHostnames": true,
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "crediya-reports-api-vpc-dev"
+                }
+              ]
+            }
+          },
+          "PublicSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "CidrBlock": "10.10.1.0/24",
+              "MapPublicIpOnLaunch": true,
+              "AvailabilityZone": "us-east-1a",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "crediya-reports-api-vpc-dev-public"
+                }
+              ]
+            }
+          },
+          "PrivateSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "CidrBlock": "10.10.2.0/24",
+              "AvailabilityZone": "us-east-1a",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "crediya-reports-api-vpc-dev-private-a"
+                }
+              ]
+            }
+          },
+          "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "CidrBlock": "10.10.3.0/24",
+              "AvailabilityZone": "us-east-1b",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "crediya-reports-api-vpc-dev-private-b"
+                }
+              ]
+            }
+          },
+          "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway"
+          },
+          "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "InternetGatewayId": {
+                "Ref": "InternetGateway"
+              }
+            }
+          },
+          "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              }
+            }
+          },
+          "PublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": [
+              "VPCGatewayAttachment"
+            ],
+            "Properties": {
+              "RouteTableId": {
+                "Ref": "PublicRouteTable"
+              },
+              "DestinationCidrBlock": "0.0.0.0/0",
+              "GatewayId": {
+                "Ref": "InternetGateway"
+              }
+            }
+          },
+          "PublicSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PublicSubnet"
+              },
+              "RouteTableId": {
+                "Ref": "PublicRouteTable"
+              }
+            }
+          },
+          "EIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+              "Domain": "vpc"
+            }
+          },
+          "NatGateway": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+              "AllocationId": {
+                "Fn::GetAtt": [
+                  "EIP",
+                  "AllocationId"
+                ]
+              },
+              "SubnetId": {
+                "Ref": "PublicSubnet"
+              }
+            }
+          },
+          "PrivateRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              }
+            }
+          },
+          "PrivateRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+              "RouteTableId": {
+                "Ref": "PrivateRouteTable"
+              },
+              "DestinationCidrBlock": "0.0.0.0/0",
+              "NatGatewayId": {
+                "Ref": "NatGateway"
+              }
+            }
+          },
+          "PrivateSubnetARouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetA"
+              },
+              "RouteTableId": {
+                "Ref": "PrivateRouteTable"
+              }
+            }
+          },
+          "PrivateSubnetBRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetB"
+              },
+              "RouteTableId": {
+                "Ref": "PrivateRouteTable"
+              }
+            }
+          },
+          "ALBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "Allow HTTP from anywhere",
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 80,
+                  "ToPort": 80,
+                  "CidrIp": "0.0.0.0/0"
+                }
+              ]
+            }
+          },
+          "ECSSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "Allow traffic from ALB and to DB",
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "IpProtocol": "tcp",
+                  "FromPort": 8070,
+                  "ToPort": 8070,
+                  "SourceSecurityGroupId": {
+                    "Ref": "ALBSecurityGroup"
+                  }
+                }
+              ]
+            }
+          },
+          "ECSTaskExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": "ecs-tasks.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                  }
+                ]
+              },
+              "ManagedPolicyArns": [
+                "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+              ]
+            }
+          },
+          "ECSTaskRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": "ecs-tasks.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": "crediya-reports-api-task-policy",
+                  "PolicyDocument": {
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "secretsmanager:GetSecretValue",
+                          "ssm:GetParameter",
+                          "sqs:SendMessage",
+                          "sqs:ReceiveMessage",
+                          "sqs:DeleteMessage",
+                          "sqs:GetQueueAttributes",
+                          "sqs:GetQueueUrl"
+                        ],
+                        "Resource": [
+                          "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya/shared-jwt-secret/dev-JxXy9Y",
+                          {
+                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/shared/jwt-secret-arn/dev"
+                          },
+                          {
+                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-validation-response-queue-url/dev"
+                          },
+                          "arn:aws:sqs:us-east-1:520236304018:crediya-application-validation-response-queue-dev",
+                          "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-3EYiVb"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "ssmmessages:CreateControlChannel",
+                          "ssmmessages:CreateDataChannel",
+                          "ssmmessages:OpenControlChannel",
+                          "ssmmessages:OpenDataChannel",
+                          "ssm:UpdateInstanceInformation"
+                        ],
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "dynamodb:GetItem",
+                          "dynamodb:PutItem",
+                          "dynamodb:UpdateItem",
+                          "dynamodb:DeleteItem",
+                          "dynamodb:Query",
+                          "dynamodb:Scan"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Production-Table"
+                          },
+                          {
+                            "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Production-Table/index/*"
+                          },
+                          {
+                            "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Summary-Production-Table"
+                          },
+                          {
+                            "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Summary-Production-Table/index/*"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "ECSCluster": {
+            "Type": "AWS::ECS::Cluster",
+            "Properties": {
+              "ClusterName": "crediya-reports-api-cluster-dev",
+              "Configuration": {
+                "ExecuteCommandConfiguration": {
+                  "Logging": "DEFAULT"
+                }
+              }
+            }
+          },
+          "TaskDefinition": {
+            "Type": "AWS::ECS::TaskDefinition",
+            "Properties": {
+              "Family": "crediya-reports-api-task",
+              "NetworkMode": "awsvpc",
+              "RequiresCompatibilities": [
+                "FARGATE"
+              ],
+              "Cpu": "256",
+              "Memory": "512",
+              "ExecutionRoleArn": {
+                "Ref": "ECSTaskExecutionRole"
+              },
+              "TaskRoleArn": {
+                "Ref": "ECSTaskRole"
+              },
+              "ContainerDefinitions": [
+                {
+                  "Name": "crediya-reports-api-container",
+                  "Image": {
+                    "Fn::Sub": "${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/reports-api:latest"
+                  },
+                  "PortMappings": [
+                    {
+                      "ContainerPort": 8070
+                    }
+                  ],
+                  "HealthCheck": {
+                    "Command": [
+                      "CMD-SHELL",
+                      "curl -f http://localhost:8070/actuator/health/liveness || exit 1"
+                    ],
+                    "Interval": 30,
+                    "Timeout": 5,
+                    "Retries": 4,
+                    "StartPeriod": 150
+                  },
+                  "LogConfiguration": {
+                    "LogDriver": "awslogs",
+                    "Options": {
+                      "awslogs-group": {
+                        "Ref": "LogGroup"
+                      },
+                      "awslogs-region": "us-east-1",
+                      "awslogs-stream-prefix": "ecs"
+                    }
+                  },
+                  "Environment": [
+                    {
+                      "Name": "JWT_SECRET_NAME",
+                      "Value": "crediya/shared-jwt-secret/dev"
+                    },
+                    {
+                      "Name": "CORS",
+                      "Value": "http://localhost:8070"
+                    },
+                    {
+                      "Name": "QUEUE_URL_LISTENER_REPORT",
+                      "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-validation-response-queue-dev"
+                    },
+                    {
+                      "Name": "AUTH_API_URL",
+                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
+                    },
+                    {
+                      "Name": "AUTH_SECRET_NAME",
+                      "Value": "crediya-reports-api/admin-credentials/dev"
+                    },
+                    {
+                      "Name": "AWS_REGION",
+                      "Value": "us-east-1"
+                    },
+                    {
+                      "Name": "SPRING_PROFILES_ACTIVE",
+                      "Value": "dev"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "LogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/ecs/crediya-reports-api",
+              "RetentionInDays": 7
+            }
+          },
+          "ECSService": {
+            "Type": "AWS::ECS::Service",
+            "DependsOn": [
+              "Listener"
+            ],
+            "Properties": {
+              "ServiceName": "crediya-reports-api-service",
+              "Cluster": {
+                "Ref": "ECSCluster"
+              },
+              "TaskDefinition": {
+                "Ref": "TaskDefinition"
+              },
+              "LaunchType": "FARGATE",
+              "DesiredCount": 1,
+              "EnableExecuteCommand": true,
+              "NetworkConfiguration": {
+                "AwsvpcConfiguration": {
+                  "Subnets": [
+                    {
+                      "Ref": "PrivateSubnetA"
+                    },
+                    {
+                      "Ref": "PrivateSubnetB"
+                    }
+                  ],
+                  "SecurityGroups": [
+                    {
+                      "Ref": "ECSSecurityGroup"
+                    }
+                  ]
+                }
+              },
+              "LoadBalancers": [
+                {
+                  "ContainerName": "crediya-reports-api-container",
+                  "ContainerPort": 8070,
+                  "TargetGroupArn": {
+                    "Ref": "TargetGroup"
+                  }
+                }
+              ]
+            }
+          },
+          "ReportsProductionTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "Reports-Production-Table",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "applicationLoanId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "applicationLoanId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_IMAGE"
+              }
+            }
+          },
+          "ReportsSummaryProductionTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "Reports-Summary-Production-Table",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "reportId",
+                  "AttributeType": "N"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "reportId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "ReportsTableNameSsm": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+              "Name": "/creadiya/reports-api/reports-table-name/dev",
+              "Type": "String",
+              "Value": {
+                "Ref": "ReportsProductionTable"
+              }
+            }
+          },
+          "ReportsTableArnSsm": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+              "Name": "/creadiya/reports-api/reports-table-arn/dev",
+              "Type": "String",
+              "Value": {
+                "Fn::GetAtt": [
+                  "ReportsProductionTable",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "ReportsTableStreamArnSsm": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+              "Name": "/creadiya/reports-api/reports-table-stream-arn/dev",
+              "Type": "String",
+              "Value": {
+                "Fn::GetAtt": [
+                  "ReportsProductionTable",
+                  "StreamArn"
+                ]
+              }
+            }
+          },
+          "ReportsSummaryTableNameSsm": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+              "Name": "/creadiya/reports-api/reports-summary-table-name/dev",
+              "Type": "String",
+              "Value": {
+                "Ref": "ReportsSummaryProductionTable"
+              }
+            }
+          },
+          "ReportsSummaryTableArnSsm": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+              "Name": "/creadiya/reports-api/reports-summary-table-arn/dev",
+              "Type": "String",
+              "Value": {
+                "Fn::GetAtt": [
+                  "ReportsSummaryProductionTable",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "ALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+              "Name": "crediya-reports-api-alb",
+              "Scheme": "internal",
+              "Subnets": [
+                {
+                  "Ref": "PrivateSubnetA"
+                },
+                {
+                  "Ref": "PrivateSubnetB"
+                }
+              ],
+              "SecurityGroups": [
+                {
+                  "Ref": "ALBSecurityGroup"
+                }
+              ]
+            }
+          },
+          "TargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+              "Name": "crediya-reports-api-tg",
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "Port": 8070,
+              "Protocol": "HTTP",
+              "TargetType": "ip",
+              "HealthCheckPath": "/actuator/health/liveness",
+              "HealthCheckIntervalSeconds": 40,
+              "HealthCheckTimeoutSeconds": 15,
+              "UnhealthyThresholdCount": 5
+            }
+          },
+          "Listener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "DependsOn": [
+              "ALB",
+              "TargetGroup"
+            ],
+            "Properties": {
+              "LoadBalancerArn": {
+                "Ref": "ALB"
+              },
+              "Port": 80,
+              "Protocol": "HTTP",
+              "DefaultActions": [
+                {
+                  "Type": "forward",
+                  "TargetGroupArn": {
+                    "Ref": "TargetGroup"
+                  }
+                }
+              ]
+            }
+          },
+          "HttpApi": {
+            "Type": "AWS::ApiGatewayV2::Api",
+            "Properties": {
+              "Name": "crediya-reports-api-http-api",
+              "ProtocolType": "HTTP",
+              "CorsConfiguration": {
+                "AllowOrigins": [
+                  "*"
+                ],
+                "AllowMethods": [
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "DELETE",
+                  "OPTIONS"
+                ],
+                "AllowHeaders": [
+                  "Content-Type",
+                  "Authorization"
+                ]
+              }
+            }
+          },
+          "VpcLink": {
+            "Type": "AWS::ApiGatewayV2::VpcLink",
+            "Properties": {
+              "Name": "crediya-reports-api-vpc-link",
+              "SubnetIds": [
+                {
+                  "Ref": "PrivateSubnetA"
+                },
+                {
+                  "Ref": "PrivateSubnetB"
+                }
+              ]
+            }
+          },
+          "ApiGatewayIntegration": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "HTTP_PROXY",
+              "IntegrationMethod": "ANY",
+              "IntegrationUri": {
+                "Ref": "Listener"
+              },
+              "ConnectionType": "VPC_LINK",
+              "ConnectionId": {
+                "Ref": "VpcLink"
+              },
+              "PayloadFormatVersion": "1.0"
+            }
+          },
+          "ApiGatewayRouteGetReports": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /api/v1/report",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "ApiGatewayIntegration"
+                    }
+                  ]
+                ]
+              }
+            }
+          },
+          "ApiGatewayRouteHealthLiveness": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /actuator/health/liveness",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "ApiGatewayIntegration"
+                    }
+                  ]
+                ]
+              }
+            }
+          },
+          "ApiGatewayStage": {
+            "Type": "AWS::ApiGatewayV2::Stage",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "StageName": "$default",
+              "AutoDeploy": true
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-us-east-1-cb4ea531-a34b",
+            "Export": {
+              "Name": "sls-crediya-reports-api-dev-ServerlessDeploymentBucketName"
+            }
+          }
+        }
+      }
+    },
+    "custom": {
+      "vpcName": "crediya-reports-api-vpc-dev",
+      "clusterName": "crediya-reports-api-cluster-dev",
+      "ecrRepoName": "reports-api",
+      "jwtSecretSsmPath": "/creadiya/shared/jwt-secret-arn/dev",
+      "jwtSecretArnValue": "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya/shared-jwt-secret/dev-JxXy9Y",
+      "adminCredentialsSecretName": "crediya-reports-api/admin-credentials/dev",
+      "sqsListenerQueueUrlSsmPath": "/creadiya/application-api/sqs-validation-response-queue-url/dev",
+      "sqsListenerQueueArnSsmPath": "/creadiya/application-api/sqs-validation-response-queue-arn/dev",
+      "reportsTableName": "Reports-Production-Table",
+      "reportsSummaryTableName": "Reports-Summary-Production-Table",
+      "adminCredentialsSecretArnSsmPath": "/creadiya/application-api/admin-credentials-secret-arn/dev"
+    },
+    "pluginsData": {},
+    "functions": {},
+    "resources": {
+      "Resources": {
+        "VPC": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": "10.10.0.0/16",
+            "EnableDnsSupport": true,
+            "EnableDnsHostnames": true,
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "crediya-reports-api-vpc-dev"
+              }
+            ]
+          }
+        },
+        "PublicSubnet": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "CidrBlock": "10.10.1.0/24",
+            "MapPublicIpOnLaunch": true,
+            "AvailabilityZone": "us-east-1a",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "crediya-reports-api-vpc-dev-public"
+              }
+            ]
+          }
+        },
+        "PrivateSubnetA": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "CidrBlock": "10.10.2.0/24",
+            "AvailabilityZone": "us-east-1a",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "crediya-reports-api-vpc-dev-private-a"
+              }
+            ]
+          }
+        },
+        "PrivateSubnetB": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "CidrBlock": "10.10.3.0/24",
+            "AvailabilityZone": "us-east-1b",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "crediya-reports-api-vpc-dev-private-b"
+              }
+            ]
+          }
+        },
+        "InternetGateway": {
+          "Type": "AWS::EC2::InternetGateway"
+        },
+        "VPCGatewayAttachment": {
+          "Type": "AWS::EC2::VPCGatewayAttachment",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "InternetGatewayId": {
+              "Ref": "InternetGateway"
+            }
+          }
+        },
+        "PublicRouteTable": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            }
+          }
+        },
+        "PublicRoute": {
+          "Type": "AWS::EC2::Route",
+          "DependsOn": [
+            "VPCGatewayAttachment"
+          ],
+          "Properties": {
+            "RouteTableId": {
+              "Ref": "PublicRouteTable"
+            },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": {
+              "Ref": "InternetGateway"
+            }
+          }
+        },
+        "PublicSubnetRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PublicSubnet"
+            },
+            "RouteTableId": {
+              "Ref": "PublicRouteTable"
+            }
+          }
+        },
+        "EIP": {
+          "Type": "AWS::EC2::EIP",
+          "Properties": {
+            "Domain": "vpc"
+          }
+        },
+        "NatGateway": {
+          "Type": "AWS::EC2::NatGateway",
+          "Properties": {
+            "AllocationId": {
+              "Fn::GetAtt": [
+                "EIP",
+                "AllocationId"
+              ]
+            },
+            "SubnetId": {
+              "Ref": "PublicSubnet"
+            }
+          }
+        },
+        "PrivateRouteTable": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            }
+          }
+        },
+        "PrivateRoute": {
+          "Type": "AWS::EC2::Route",
+          "Properties": {
+            "RouteTableId": {
+              "Ref": "PrivateRouteTable"
+            },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "NatGatewayId": {
+              "Ref": "NatGateway"
+            }
+          }
+        },
+        "PrivateSubnetARouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PrivateSubnetA"
+            },
+            "RouteTableId": {
+              "Ref": "PrivateRouteTable"
+            }
+          }
+        },
+        "PrivateSubnetBRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PrivateSubnetB"
+            },
+            "RouteTableId": {
+              "Ref": "PrivateRouteTable"
+            }
+          }
+        },
+        "ALBSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "Allow HTTP from anywhere",
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 80,
+                "CidrIp": "0.0.0.0/0"
+              }
+            ]
+          }
+        },
+        "ECSSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "Allow traffic from ALB and to DB",
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": 8070,
+                "ToPort": 8070,
+                "SourceSecurityGroupId": {
+                  "Ref": "ALBSecurityGroup"
+                }
+              }
+            ]
+          }
+        },
+        "ECSTaskExecutionRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            },
+            "ManagedPolicyArns": [
+              "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+            ]
+          }
+        },
+        "ECSTaskRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": "crediya-reports-api-task-policy",
+                "PolicyDocument": {
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "secretsmanager:GetSecretValue",
+                        "ssm:GetParameter",
+                        "sqs:SendMessage",
+                        "sqs:ReceiveMessage",
+                        "sqs:DeleteMessage",
+                        "sqs:GetQueueAttributes",
+                        "sqs:GetQueueUrl"
+                      ],
+                      "Resource": [
+                        "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya/shared-jwt-secret/dev-JxXy9Y",
+                        {
+                          "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/shared/jwt-secret-arn/dev"
+                        },
+                        {
+                          "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-validation-response-queue-url/dev"
+                        },
+                        "arn:aws:sqs:us-east-1:520236304018:crediya-application-validation-response-queue-dev",
+                        "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-3EYiVb"
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "ssmmessages:CreateControlChannel",
+                        "ssmmessages:CreateDataChannel",
+                        "ssmmessages:OpenControlChannel",
+                        "ssmmessages:OpenDataChannel",
+                        "ssm:UpdateInstanceInformation"
+                      ],
+                      "Resource": "*"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:GetItem",
+                        "dynamodb:PutItem",
+                        "dynamodb:UpdateItem",
+                        "dynamodb:DeleteItem",
+                        "dynamodb:Query",
+                        "dynamodb:Scan"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Production-Table"
+                        },
+                        {
+                          "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Production-Table/index/*"
+                        },
+                        {
+                          "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Summary-Production-Table"
+                        },
+                        {
+                          "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Reports-Summary-Production-Table/index/*"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "ECSCluster": {
+          "Type": "AWS::ECS::Cluster",
+          "Properties": {
+            "ClusterName": "crediya-reports-api-cluster-dev",
+            "Configuration": {
+              "ExecuteCommandConfiguration": {
+                "Logging": "DEFAULT"
+              }
+            }
+          }
+        },
+        "TaskDefinition": {
+          "Type": "AWS::ECS::TaskDefinition",
+          "Properties": {
+            "Family": "crediya-reports-api-task",
+            "NetworkMode": "awsvpc",
+            "RequiresCompatibilities": [
+              "FARGATE"
+            ],
+            "Cpu": "256",
+            "Memory": "512",
+            "ExecutionRoleArn": {
+              "Ref": "ECSTaskExecutionRole"
+            },
+            "TaskRoleArn": {
+              "Ref": "ECSTaskRole"
+            },
+            "ContainerDefinitions": [
+              {
+                "Name": "crediya-reports-api-container",
+                "Image": {
+                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/reports-api:latest"
+                },
+                "PortMappings": [
+                  {
+                    "ContainerPort": 8070
+                  }
+                ],
+                "HealthCheck": {
+                  "Command": [
+                    "CMD-SHELL",
+                    "curl -f http://localhost:8070/actuator/health/liveness || exit 1"
+                  ],
+                  "Interval": 30,
+                  "Timeout": 5,
+                  "Retries": 4,
+                  "StartPeriod": 150
+                },
+                "LogConfiguration": {
+                  "LogDriver": "awslogs",
+                  "Options": {
+                    "awslogs-group": {
+                      "Ref": "LogGroup"
+                    },
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                },
+                "Environment": [
+                  {
+                    "Name": "JWT_SECRET_NAME",
+                    "Value": "crediya/shared-jwt-secret/dev"
+                  },
+                  {
+                    "Name": "CORS",
+                    "Value": "http://localhost:8070"
+                  },
+                  {
+                    "Name": "QUEUE_URL_LISTENER_REPORT",
+                    "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-validation-response-queue-dev"
+                  },
+                  {
+                    "Name": "AUTH_API_URL",
+                    "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
+                  },
+                  {
+                    "Name": "AUTH_SECRET_NAME",
+                    "Value": "crediya-reports-api/admin-credentials/dev"
+                  },
+                  {
+                    "Name": "AWS_REGION",
+                    "Value": "us-east-1"
+                  },
+                  {
+                    "Name": "SPRING_PROFILES_ACTIVE",
+                    "Value": "dev"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "LogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/ecs/crediya-reports-api",
+            "RetentionInDays": 7
+          }
+        },
+        "ECSService": {
+          "Type": "AWS::ECS::Service",
+          "DependsOn": [
+            "Listener"
+          ],
+          "Properties": {
+            "ServiceName": "crediya-reports-api-service",
+            "Cluster": {
+              "Ref": "ECSCluster"
+            },
+            "TaskDefinition": {
+              "Ref": "TaskDefinition"
+            },
+            "LaunchType": "FARGATE",
+            "DesiredCount": 1,
+            "EnableExecuteCommand": true,
+            "NetworkConfiguration": {
+              "AwsvpcConfiguration": {
+                "Subnets": [
+                  {
+                    "Ref": "PrivateSubnetA"
+                  },
+                  {
+                    "Ref": "PrivateSubnetB"
+                  }
+                ],
+                "SecurityGroups": [
+                  {
+                    "Ref": "ECSSecurityGroup"
+                  }
+                ]
+              }
+            },
+            "LoadBalancers": [
+              {
+                "ContainerName": "crediya-reports-api-container",
+                "ContainerPort": 8070,
+                "TargetGroupArn": {
+                  "Ref": "TargetGroup"
+                }
+              }
+            ]
+          }
+        },
+        "ReportsProductionTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "Reports-Production-Table",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "applicationLoanId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "applicationLoanId",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_IMAGE"
+            }
+          }
+        },
+        "ReportsSummaryProductionTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "Reports-Summary-Production-Table",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "reportId",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "reportId",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+          }
+        },
+        "ReportsTableNameSsm": {
+          "Type": "AWS::SSM::Parameter",
+          "Properties": {
+            "Name": "/creadiya/reports-api/reports-table-name/dev",
+            "Type": "String",
+            "Value": {
+              "Ref": "ReportsProductionTable"
+            }
+          }
+        },
+        "ReportsTableArnSsm": {
+          "Type": "AWS::SSM::Parameter",
+          "Properties": {
+            "Name": "/creadiya/reports-api/reports-table-arn/dev",
+            "Type": "String",
+            "Value": {
+              "Fn::GetAtt": [
+                "ReportsProductionTable",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "ReportsTableStreamArnSsm": {
+          "Type": "AWS::SSM::Parameter",
+          "Properties": {
+            "Name": "/creadiya/reports-api/reports-table-stream-arn/dev",
+            "Type": "String",
+            "Value": {
+              "Fn::GetAtt": [
+                "ReportsProductionTable",
+                "StreamArn"
+              ]
+            }
+          }
+        },
+        "ReportsSummaryTableNameSsm": {
+          "Type": "AWS::SSM::Parameter",
+          "Properties": {
+            "Name": "/creadiya/reports-api/reports-summary-table-name/dev",
+            "Type": "String",
+            "Value": {
+              "Ref": "ReportsSummaryProductionTable"
+            }
+          }
+        },
+        "ReportsSummaryTableArnSsm": {
+          "Type": "AWS::SSM::Parameter",
+          "Properties": {
+            "Name": "/creadiya/reports-api/reports-summary-table-arn/dev",
+            "Type": "String",
+            "Value": {
+              "Fn::GetAtt": [
+                "ReportsSummaryProductionTable",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "ALB": {
+          "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+          "Properties": {
+            "Name": "crediya-reports-api-alb",
+            "Scheme": "internal",
+            "Subnets": [
+              {
+                "Ref": "PrivateSubnetA"
+              },
+              {
+                "Ref": "PrivateSubnetB"
+              }
+            ],
+            "SecurityGroups": [
+              {
+                "Ref": "ALBSecurityGroup"
+              }
+            ]
+          }
+        },
+        "TargetGroup": {
+          "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+          "Properties": {
+            "Name": "crediya-reports-api-tg",
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "Port": 8070,
+            "Protocol": "HTTP",
+            "TargetType": "ip",
+            "HealthCheckPath": "/actuator/health/liveness",
+            "HealthCheckIntervalSeconds": 40,
+            "HealthCheckTimeoutSeconds": 15,
+            "UnhealthyThresholdCount": 5
+          }
+        },
+        "Listener": {
+          "Type": "AWS::ElasticLoadBalancingV2::Listener",
+          "DependsOn": [
+            "ALB",
+            "TargetGroup"
+          ],
+          "Properties": {
+            "LoadBalancerArn": {
+              "Ref": "ALB"
+            },
+            "Port": 80,
+            "Protocol": "HTTP",
+            "DefaultActions": [
+              {
+                "Type": "forward",
+                "TargetGroupArn": {
+                  "Ref": "TargetGroup"
+                }
+              }
+            ]
+          }
+        },
+        "HttpApi": {
+          "Type": "AWS::ApiGatewayV2::Api",
+          "Properties": {
+            "Name": "crediya-reports-api-http-api",
+            "ProtocolType": "HTTP",
+            "CorsConfiguration": {
+              "AllowOrigins": [
+                "*"
+              ],
+              "AllowMethods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+              ],
+              "AllowHeaders": [
+                "Content-Type",
+                "Authorization"
+              ]
+            }
+          }
+        },
+        "VpcLink": {
+          "Type": "AWS::ApiGatewayV2::VpcLink",
+          "Properties": {
+            "Name": "crediya-reports-api-vpc-link",
+            "SubnetIds": [
+              {
+                "Ref": "PrivateSubnetA"
+              },
+              {
+                "Ref": "PrivateSubnetB"
+              }
+            ]
+          }
+        },
+        "ApiGatewayIntegration": {
+          "Type": "AWS::ApiGatewayV2::Integration",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "IntegrationType": "HTTP_PROXY",
+            "IntegrationMethod": "ANY",
+            "IntegrationUri": {
+              "Ref": "Listener"
+            },
+            "ConnectionType": "VPC_LINK",
+            "ConnectionId": {
+              "Ref": "VpcLink"
+            },
+            "PayloadFormatVersion": "1.0"
+          }
+        },
+        "ApiGatewayRouteGetReports": {
+          "Type": "AWS::ApiGatewayV2::Route",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "RouteKey": "GET /api/v1/report",
+            "Target": {
+              "Fn::Join": [
+                "/",
+                [
+                  "integrations",
+                  {
+                    "Ref": "ApiGatewayIntegration"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "ApiGatewayRouteHealthLiveness": {
+          "Type": "AWS::ApiGatewayV2::Route",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "RouteKey": "GET /actuator/health/liveness",
+            "Target": {
+              "Fn::Join": [
+                "/",
+                [
+                  "integrations",
+                  {
+                    "Ref": "ApiGatewayIntegration"
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "ApiGatewayStage": {
+          "Type": "AWS::ApiGatewayV2::Stage",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "StageName": "$default",
+            "AutoDeploy": true
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless",
+    "initialServerlessConfig": {
+      "service": "crediya-reports-api",
+      "frameworkVersion": "4",
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "package": {
+        "individually": true,
+        "artifactsS3KeyDirname": "serverless/crediya-reports-api/dev/code-artifacts",
+        "deploymentBucket": "serverless-framework-deployments-us-east-1-cb4ea531-a34b",
+        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      },
+      "outputs": {
+        "ApiUrl": {
+          "Description": "URL of the API Gateway for the Reports service",
+          "Value": {
+            "Fn::Sub": "https://${HttpApi}.execute-api.us-east-1.amazonaws.com/dev"
+          }
+        }
+      }
+    },
+    "appId": null,
+    "orgId": null,
+    "layers": {},
+    "outputs": {
+      "$ref": "$[\"service\"][\"initialServerlessConfig\"][\"outputs\"]"
+    }
+  },
+  "package": {
+    "individually": true,
+    "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z",
+    "artifact": ""
+  }
+}

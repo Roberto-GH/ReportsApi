@@ -10,27 +10,29 @@ logging:
     org:
       springframework:
         web: "DEBUG"
+      boot:
+        actuate: "TRACE"
 aws:
-  region: "${AWS_REGION}"
+  region: "us-east-1"
+  jwtSecretName: "${JWT_SECRET_NAME}"
   dynamodb:
-    endpoint: "${DYNAMO_DB_HOST}"
+    endpoint: "http://localhost:1234"
 management:
   endpoints:
     web:
       exposure:
-        include: "health,prometheus"
+        include: "health,prometheus,info"
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: ALWAYS
 cors:
   allowed-origins: "${CORS}"
 routes:
   report:
     paths:
       reports: "/api/v1/report"
-jwt:
-  secret: "${JWT_SECRET}"
 entrypoint:
   sqs:
     region: "${AWS_REGION}"
