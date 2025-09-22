@@ -400,7 +400,7 @@
                       },
                       {
                         "Name": "AUTH_API_URL",
-                        "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                        "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                       },
                       {
                         "Name": "AUTH_SECRET_NAME",
@@ -761,7 +761,7 @@
         "individually": true,
         "artifactsS3KeyDirname": "serverless/crediya-reports-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-cb4ea531-a34b",
-        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758574985286-2025-09-22T21:03:05.286Z"
+        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z"
       },
       "resources": {
         "Resources": {
@@ -1150,7 +1150,7 @@
                     },
                     {
                       "Name": "AUTH_API_URL",
-                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                     },
                     {
                       "Name": "AUTH_SECRET_NAME",
@@ -1889,7 +1889,7 @@
                     },
                     {
                       "Name": "AUTH_API_URL",
-                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                     },
                     {
                       "Name": "AUTH_SECRET_NAME",
@@ -2253,8 +2253,8 @@
     "userName": "robertoln",
     "serviceProviderAwsAccountId": "520236304018",
     "serviceProviderAwsCfStackName": "crediya-reports-api-dev",
-    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:520236304018:stack/crediya-reports-api-dev/8de05150-97f7-11f0-a3c9-1200b4a2bf67",
-    "serviceProviderAwsCfStackCreated": "2025-09-22T21:03:14.296Z",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:520236304018:stack/crediya-reports-api-dev/fc2b9090-9804-11f0-93c7-0affd2d29bed",
+    "serviceProviderAwsCfStackCreated": "2025-09-22T22:39:22.882Z",
     "serviceProviderAwsCfStackUpdated": null,
     "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
@@ -2653,7 +2653,7 @@
                   },
                   {
                     "Name": "AUTH_API_URL",
-                    "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                    "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                   },
                   {
                     "Name": "AUTH_SECRET_NAME",

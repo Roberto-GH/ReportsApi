@@ -387,7 +387,7 @@
               },
               {
                 "Name": "AUTH_API_URL",
-                "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
               },
               {
                 "Name": "AUTH_SECRET_NAME",

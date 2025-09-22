@@ -398,7 +398,7 @@
                     },
                     {
                       "Name": "AUTH_API_URL",
-                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                      "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                     },
                     {
                       "Name": "AUTH_SECRET_NAME",
@@ -1144,7 +1144,7 @@
                   },
                   {
                     "Name": "AUTH_API_URL",
-                    "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com/auth/v1/login"
+                    "Value": "https://a9z8teqs3i.execute-api.us-east-1.amazonaws.com"
                   },
                   {
                     "Name": "AUTH_SECRET_NAME",
@@ -1495,7 +1495,7 @@
         "individually": true,
         "artifactsS3KeyDirname": "serverless/crediya-reports-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-cb4ea531-a34b",
-        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758574985286-2025-09-22T21:03:05.286Z"
+        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z"
       },
       "resources": {
         "$ref": "$[\"service\"][\"resources\"]"
@@ -1518,7 +1518,7 @@
   },
   "package": {
     "individually": true,
-    "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758574985286-2025-09-22T21:03:05.286Z",
+    "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z",
     "artifact": ""
   }
 }
