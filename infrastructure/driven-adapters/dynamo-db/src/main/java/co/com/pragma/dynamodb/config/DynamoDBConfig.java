@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.metrics.MetricPublisher;
 import software.amazon.awssdk.regions.Region;
@@ -30,12 +31,22 @@ public class DynamoDBConfig {
   }
 
   @Bean
+  @Profile({DynamoDBKeys.PROFILE_LOCAL_DEV})
+  public DynamoDbAsyncClient amazonDynamoDBAsyncLocalDev(MetricPublisher publisher, @Value("${aws.region}") String region) {
+    return DynamoDbAsyncClient
+      .builder()
+      .credentialsProvider(DefaultCredentialsProvider.builder().build())
+      .region(Region.of(region))
+      .overrideConfiguration(o -> o.addMetricPublisher(publisher))
+      .build();
+  }
+
+  @Bean
   @Profile({DynamoDBKeys.PROFILE_DEV, DynamoDBKeys.PROFILE_CER, DynamoDBKeys.PROFILE_PDN})
   public DynamoDbAsyncClient amazonDynamoDBAsync(MetricPublisher publisher, @Value("${aws.region}") String region) {
     return DynamoDbAsyncClient
       .builder()
-      //.credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
-      .credentialsProvider(DefaultCredentialsProvider.builder().build())
+      .credentialsProvider(DefaultCredentialsProvider.create())
       .region(Region.of(region))
       .overrideConfiguration(o -> o.addMetricPublisher(publisher))
       .build();

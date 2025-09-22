@@ -1,0 +1,468 @@
+service: crediya-reports-api
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+
+custom:
+  vpcName: ${self:service}-vpc-${self:provider.stage}
+  clusterName: ${self:service}-cluster-${self:provider.stage}
+  ecrRepoName: ${ssm:/creadiya/reports-api/ecr-repo-name}
+  jwtSecretSsmPath: /creadiya/shared/jwt-secret-arn/${self:provider.stage}
+  jwtSecretArnValue: ${ssm:${self:custom.jwtSecretSsmPath}}
+  adminCredentialsSecretName: ${self:service}/admin-credentials/${self:provider.stage}
+  sqsListenerQueueUrlSsmPath: /creadiya/application-api/sqs-validation-response-queue-url/${self:provider.stage}
+  sqsListenerQueueArnSsmPath: /creadiya/application-api/sqs-validation-response-queue-arn/${self:provider.stage}
+  reportsTableName: Reports-Production-Table
+  reportsSummaryTableName: Reports-Summary-Production-Table
+  adminCredentialsSecretArnSsmPath: /creadiya/application-api/admin-credentials-secret-arn/${self:provider.stage}
+
+package:
+  individually: true
+
+resources:
+  Resources:
+    # ------------------------------------------------------------
+    # Networking
+    # ------------------------------------------------------------
+    VPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.10.0.0/16
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+        Tags:
+          - Key: Name
+            Value: ${self:custom.vpcName}
+
+    PublicSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.10.1.0/24
+        MapPublicIpOnLaunch: true
+        AvailabilityZone: ${self:provider.region}a
+        Tags:
+          - Key: Name
+            Value: ${self:custom.vpcName}-public
+
+    PrivateSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.10.2.0/24
+        AvailabilityZone: ${self:provider.region}a
+        Tags:
+          - Key: Name
+            Value: ${self:custom.vpcName}-private-a
+
+    PrivateSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.10.3.0/24
+        AvailabilityZone: ${self:provider.region}b
+        Tags:
+          - Key: Name
+            Value: ${self:custom.vpcName}-private-b
+
+    InternetGateway:
+      Type: AWS::EC2::InternetGateway
+
+    VPCGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        VpcId: !Ref VPC
+        InternetGatewayId: !Ref InternetGateway
+
+    PublicRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref VPC
+
+    PublicRoute:
+      Type: AWS::EC2::Route
+      DependsOn: VPCGatewayAttachment
+      Properties:
+        RouteTableId: !Ref PublicRouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId: !Ref InternetGateway
+
+    PublicSubnetRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet
+        RouteTableId: !Ref PublicRouteTable
+
+    EIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: vpc
+
+    NatGateway:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId: !GetAtt EIP.AllocationId
+        SubnetId: !Ref PublicSubnet
+
+    PrivateRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref VPC
+
+    PrivateRoute:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref PrivateRouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGateway
+
+    PrivateSubnetARouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PrivateSubnetA
+        RouteTableId: !Ref PrivateRouteTable
+
+    PrivateSubnetBRouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PrivateSubnetB
+        RouteTableId: !Ref PrivateRouteTable
+
+    # ------------------------------------------------------------
+    # Security
+    # ------------------------------------------------------------
+    ALBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: "Allow HTTP from anywhere"
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+
+    ECSSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: "Allow traffic from ALB and to DB"
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 8070
+            ToPort: 8070
+            SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+    # ------------------------------------------------------------
+    # IAM Roles
+    # ------------------------------------------------------------
+    ECSTaskExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: ecs-tasks.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+    ECSTaskRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: ecs-tasks.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: ${self:service}-task-policy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - secretsmanager:GetSecretValue
+                    - ssm:GetParameter
+                    - sqs:SendMessage
+                    - sqs:ReceiveMessage
+                    - sqs:DeleteMessage
+                    - sqs:GetQueueAttributes
+                    - sqs:GetQueueUrl
+                  Resource:
+                    - ${self:custom.jwtSecretArnValue}
+                    - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${self:custom.jwtSecretSsmPath}"
+                    - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${self:custom.sqsListenerQueueUrlSsmPath}"
+                    - ${ssm:${self:custom.sqsListenerQueueArnSsmPath}}
+                    - ${ssm:${self:custom.adminCredentialsSecretArnSsmPath}}
+                - Effect: Allow
+                  Action:
+                    - ssmmessages:CreateControlChannel
+                    - ssmmessages:CreateDataChannel
+                    - ssmmessages:OpenControlChannel
+                    - ssmmessages:OpenDataChannel
+                    - ssm:UpdateInstanceInformation
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - dynamodb:GetItem
+                    - dynamodb:PutItem
+                    - dynamodb:UpdateItem
+                    - dynamodb:DeleteItem
+                    - dynamodb:Query
+                    - dynamodb:Scan
+                  Resource:
+                    - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.reportsTableName}"
+                    - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.reportsTableName}/index/*"
+                    - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.reportsSummaryTableName}"
+                    - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.reportsSummaryTableName}/index/*"
+
+    # ------------------------------------------------------------
+    # ECR & ECS
+    # ------------------------------------------------------------
+    ECSCluster:
+      Type: AWS::ECS::Cluster
+      Properties:
+        ClusterName: ${self:custom.clusterName}
+        Configuration:
+          ExecuteCommandConfiguration:
+            Logging: DEFAULT
+
+    TaskDefinition:
+      Type: AWS::ECS::TaskDefinition
+      Properties:
+        Family: ${self:service}-task
+        NetworkMode: awsvpc
+        RequiresCompatibilities: [FARGATE]
+        Cpu: "256"
+        Memory: "512"
+        ExecutionRoleArn: !Ref ECSTaskExecutionRole
+        TaskRoleArn: !Ref ECSTaskRole
+        ContainerDefinitions:
+          - Name: ${self:service}-container
+            Image: !Sub "${AWS::AccountId}.dkr.ecr.${self:provider.region}.amazonaws.com/${self:custom.ecrRepoName}:latest"
+            PortMappings:
+              - ContainerPort: 8070
+            HealthCheck:
+              Command: ["CMD-SHELL", "curl -f http://localhost:8070/actuator/health/liveness || exit 1"]
+              Interval: 30
+              Timeout: 5
+              Retries: 4
+              StartPeriod: 150
+            LogConfiguration:
+              LogDriver: awslogs
+              Options:
+                awslogs-group: !Ref LogGroup
+                awslogs-region: ${self:provider.region}
+                awslogs-stream-prefix: ecs
+            Environment:
+              - Name: JWT_SECRET_NAME
+                Value: ${ssm:/creadiya/shared/jwt-secret-name/${self:provider.stage}}
+              - Name: CORS
+                Value: "http://localhost:8070"
+              - Name: QUEUE_URL_LISTENER_REPORT
+                Value: ${ssm:${self:custom.sqsListenerQueueUrlSsmPath}}
+              - Name: AUTH_API_URL
+                Value: ${ssm:/creadiya/authentication-api/login-url/${self:provider.stage}}
+              - Name: AUTH_SECRET_NAME
+                Value: ${self:custom.adminCredentialsSecretName}
+              - Name: AWS_REGION
+                Value: ${self:provider.region}
+              - Name: SPRING_PROFILES_ACTIVE
+                Value: ${self:provider.stage}
+
+    LogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /ecs/${self:service}
+        RetentionInDays: 7
+
+    ECSService:
+      Type: AWS::ECS::Service
+      DependsOn: Listener 
+      Properties:
+        ServiceName: ${self:service}-service
+        Cluster: !Ref ECSCluster
+        TaskDefinition: !Ref TaskDefinition
+        LaunchType: FARGATE
+        DesiredCount: 1
+        EnableExecuteCommand: true
+        NetworkConfiguration:
+          AwsvpcConfiguration:
+            Subnets:
+              - !Ref PrivateSubnetA
+              - !Ref PrivateSubnetB
+            SecurityGroups:
+              - !Ref ECSSecurityGroup
+        LoadBalancers:
+          - ContainerName: ${self:service}-container
+            ContainerPort: 8070
+            TargetGroupArn: !Ref TargetGroup
+
+    # ------------------------------------------------------------
+    # DynamoDB Table
+    # ------------------------------------------------------------
+    ReportsProductionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Reports-Production-Table
+        AttributeDefinitions:
+          - AttributeName: applicationLoanId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: applicationLoanId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+
+    ReportsSummaryProductionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Reports-Summary-Production-Table
+        AttributeDefinitions:
+          - AttributeName: reportId
+            AttributeType: N
+        KeySchema:
+          - AttributeName: reportId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    # ------------------------------------------------------------
+    # SSM Parameters for DynamoDB Tables
+    # ------------------------------------------------------------
+    ReportsTableNameSsm:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /creadiya/reports-api/reports-table-name/${self:provider.stage}
+        Type: String
+        Value: !Ref ReportsProductionTable
+
+    ReportsTableArnSsm:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /creadiya/reports-api/reports-table-arn/${self:provider.stage}
+        Type: String
+        Value: !GetAtt ReportsProductionTable.Arn
+
+    ReportsTableStreamArnSsm:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /creadiya/reports-api/reports-table-stream-arn/${self:provider.stage}
+        Type: String
+        Value: !GetAtt ReportsProductionTable.StreamArn
+
+    ReportsSummaryTableNameSsm:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /creadiya/reports-api/reports-summary-table-name/${self:provider.stage}
+        Type: String
+        Value: !Ref ReportsSummaryProductionTable
+
+    ReportsSummaryTableArnSsm:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /creadiya/reports-api/reports-summary-table-arn/${self:provider.stage}
+        Type: String
+        Value: !GetAtt ReportsSummaryProductionTable.Arn
+
+    # ------------------------------------------------------------
+    # ALB & API Gateway
+    # ------------------------------------------------------------
+    ALB:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Name: ${self:service}-alb
+        Scheme: internal
+        Subnets:
+          - !Ref PrivateSubnetA
+          - !Ref PrivateSubnetB
+        SecurityGroups:
+          - !Ref ALBSecurityGroup
+
+    TargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+        Name: ${self:service}-tg
+        VpcId: !Ref VPC
+        Port: 8070
+        Protocol: HTTP
+        TargetType: ip
+        HealthCheckPath: /actuator/health/liveness
+        HealthCheckIntervalSeconds: 40
+        HealthCheckTimeoutSeconds: 15        
+        UnhealthyThresholdCount: 5
+
+    Listener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      DependsOn:
+        - ALB
+        - TargetGroup 
+      Properties:
+        LoadBalancerArn: !Ref ALB
+        Port: 80
+        Protocol: HTTP
+        DefaultActions:
+          - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+
+    HttpApi:
+      Type: AWS::ApiGatewayV2::Api
+      Properties:
+        Name: ${self:service}-http-api
+        ProtocolType: HTTP
+        CorsConfiguration:
+          AllowOrigins: ['*']
+          AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+          AllowHeaders: ['Content-Type', 'Authorization']
+
+    VpcLink:
+      Type: AWS::ApiGatewayV2::VpcLink
+      Properties:
+        Name: ${self:service}-vpc-link
+        SubnetIds:
+          - !Ref PrivateSubnetA
+          - !Ref PrivateSubnetB
+
+    ApiGatewayIntegration:
+      Type: AWS::ApiGatewayV2::Integration
+      Properties:
+        ApiId: !Ref HttpApi
+        IntegrationType: HTTP_PROXY
+        IntegrationMethod: ANY
+        IntegrationUri: !Ref Listener
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VpcLink
+        PayloadFormatVersion: '1.0'
+
+    ApiGatewayRouteGetReports:
+      Type: AWS::ApiGatewayV2::Route
+      Properties:
+        ApiId: !Ref HttpApi
+        RouteKey: 'GET /api/v1/report'
+        Target: !Join ['/', ['integrations', !Ref ApiGatewayIntegration]]
+
+    ApiGatewayRouteHealthLiveness:
+      Type: AWS::ApiGatewayV2::Route
+      Properties:
+        ApiId: !Ref HttpApi
+        RouteKey: 'GET /actuator/health/liveness'
+        Target: !Join ['/', ['integrations', !Ref ApiGatewayIntegration]]
+
+    ApiGatewayStage:
+      Type: AWS::ApiGatewayV2::Stage
+      Properties:
+        ApiId: !Ref HttpApi
+        #StageName: ${self:provider.stage}
+        StageName: $default
+        AutoDeploy: true
+
+outputs:
+  ApiUrl:
+    Description: "URL of the API Gateway for the Reports service"
+    Value: !Sub "https://${HttpApi}.execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"

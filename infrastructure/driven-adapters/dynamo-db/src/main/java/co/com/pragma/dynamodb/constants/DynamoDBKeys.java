@@ -6,6 +6,7 @@ public class DynamoDBKeys {
   public static final String TABLE_NAME_REPORT_SUMMARY = "Reports-Summary-Production-Table";
   public static final String PROFILE_LOCAL = "local";
   public static final String PROFILE_DEV = "dev";
+  public static final String PROFILE_LOCAL_DEV = "localdev";
   public static final String PROFILE_CER = "cer";
   public static final String PROFILE_PDN = "pdn";
   public static final String PROFILE_APPLICATION_LOAN_ID = "applicationLoanId";
