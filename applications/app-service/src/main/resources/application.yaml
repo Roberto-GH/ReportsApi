@@ -12,6 +12,8 @@ logging:
         web: "DEBUG"
       boot:
         actuate: "TRACE"
+    co.com.pragma: DEBUG
+    software.amazon.awssdk: DEBUG
 aws:
   region: "us-east-1"
   jwtSecretName: "${JWT_SECRET_NAME}"
