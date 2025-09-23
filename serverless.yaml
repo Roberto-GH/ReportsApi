@@ -14,8 +14,8 @@ custom:
   jwtSecretSsmPath: /creadiya/shared/jwt-secret-arn/${self:provider.stage}
   jwtSecretArnValue: ${ssm:${self:custom.jwtSecretSsmPath}}
   adminCredentialsSecretName: ${self:service}/admin-credentials/${self:provider.stage}
-  sqsListenerQueueUrlSsmPath: /creadiya/application-api/sqs-validation-response-queue-url/${self:provider.stage}
-  sqsListenerQueueArnSsmPath: /creadiya/application-api/sqs-validation-response-queue-arn/${self:provider.stage}
+  sqsListenerQueueUrlSsmPath: /creadiya/application-api/sqs-report-queue-url/${self:provider.stage}
+  sqsListenerQueueArnSsmPath: /creadiya/application-api/sqs-report-queue-arn/${self:provider.stage}
   reportsTableName: Reports-Production-Table
   reportsSummaryTableName: Reports-Summary-Production-Table
   adminCredentialsSecretArnSsmPath: /creadiya/application-api/admin-credentials-secret-arn/${self:provider.stage}
@@ -253,7 +253,7 @@ resources:
               Interval: 30
               Timeout: 5
               Retries: 4
-              StartPeriod: 150
+              StartPeriod: 90
             LogConfiguration:
               LogDriver: awslogs
               Options:

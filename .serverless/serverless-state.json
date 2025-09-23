@@ -277,10 +277,10 @@
                             "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/shared/jwt-secret-arn/dev"
                           },
                           {
-                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-validation-response-queue-url/dev"
+                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-report-queue-url/dev"
                           },
-                          "arn:aws:sqs:us-east-1:520236304018:crediya-application-validation-response-queue-dev",
-                          "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-3EYiVb"
+                          "arn:aws:sqs:us-east-1:520236304018:crediya-application-report-queue-dev",
+                          "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-P70OOs"
                         ]
                       },
                       {
@@ -371,7 +371,7 @@
                     "Interval": 30,
                     "Timeout": 5,
                     "Retries": 4,
-                    "StartPeriod": 150
+                    "StartPeriod": 90
                   },
                   "LogConfiguration": {
                     "LogDriver": "awslogs",
@@ -394,7 +394,7 @@
                     },
                     {
                       "Name": "QUEUE_URL_LISTENER_REPORT",
-                      "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-validation-response-queue-dev"
+                      "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-report-queue-dev"
                     },
                     {
                       "Name": "AUTH_API_URL",
@@ -749,8 +749,8 @@
       "jwtSecretSsmPath": "/creadiya/shared/jwt-secret-arn/dev",
       "jwtSecretArnValue": "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya/shared-jwt-secret/dev-JxXy9Y",
       "adminCredentialsSecretName": "crediya-reports-api/admin-credentials/dev",
-      "sqsListenerQueueUrlSsmPath": "/creadiya/application-api/sqs-validation-response-queue-url/dev",
-      "sqsListenerQueueArnSsmPath": "/creadiya/application-api/sqs-validation-response-queue-arn/dev",
+      "sqsListenerQueueUrlSsmPath": "/creadiya/application-api/sqs-report-queue-url/dev",
+      "sqsListenerQueueArnSsmPath": "/creadiya/application-api/sqs-report-queue-arn/dev",
       "reportsTableName": "Reports-Production-Table",
       "reportsSummaryTableName": "Reports-Summary-Production-Table",
       "adminCredentialsSecretArnSsmPath": "/creadiya/application-api/admin-credentials-secret-arn/dev"
@@ -1023,10 +1023,10 @@
                           "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/shared/jwt-secret-arn/dev"
                         },
                         {
-                          "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-validation-response-queue-url/dev"
+                          "Fn::Sub": "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/creadiya/application-api/sqs-report-queue-url/dev"
                         },
-                        "arn:aws:sqs:us-east-1:520236304018:crediya-application-validation-response-queue-dev",
-                        "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-3EYiVb"
+                        "arn:aws:sqs:us-east-1:520236304018:crediya-application-report-queue-dev",
+                        "arn:aws:secretsmanager:us-east-1:520236304018:secret:crediya-application-api/admin-credentials/dev-P70OOs"
                       ]
                     },
                     {
@@ -1117,7 +1117,7 @@
                   "Interval": 30,
                   "Timeout": 5,
                   "Retries": 4,
-                  "StartPeriod": 150
+                  "StartPeriod": 90
                 },
                 "LogConfiguration": {
                   "LogDriver": "awslogs",
@@ -1140,7 +1140,7 @@
                   },
                   {
                     "Name": "QUEUE_URL_LISTENER_REPORT",
-                    "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-validation-response-queue-dev"
+                    "Value": "https://sqs.us-east-1.amazonaws.com/520236304018/crediya-application-report-queue-dev"
                   },
                   {
                     "Name": "AUTH_API_URL",
@@ -1495,7 +1495,7 @@
         "individually": true,
         "artifactsS3KeyDirname": "serverless/crediya-reports-api/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-cb4ea531-a34b",
-        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z"
+        "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758600198692-2025-09-23T04:03:18.692Z"
       },
       "resources": {
         "$ref": "$[\"service\"][\"resources\"]"
@@ -1518,7 +1518,7 @@
   },
   "package": {
     "individually": true,
-    "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758580754058-2025-09-22T22:39:14.058Z",
+    "artifactDirectoryName": "serverless/crediya-reports-api/dev/1758600198692-2025-09-23T04:03:18.692Z",
     "artifact": ""
   }
 }
